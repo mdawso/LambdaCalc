@@ -25,19 +25,35 @@ namespace LambdaCalc
     }
     static class LambdaCalc
     {
-        public static Expression BetaReduce(Expression expr, string target, Expression replacement)
+        public static HashSet<string> GetFreeVars(Expression expr) => expr switch
         {
-            return expr switch
+            Variable v => new HashSet<string> { v.name },
+            Function f => GetFreeVars(f.body).Where(n => n != f.parameter).ToHashSet(),
+            Application a => GetFreeVars(a.function).Union(GetFreeVars(a.argument)).ToHashSet(),
+            _ => new HashSet<string>()
+        };
+        private static Expression HandleFunctionSubstitution(Function f, string target, Expression replacement)
+        {
+            var freeInReplacement = GetFreeVars(replacement);
+            if (freeInReplacement.Contains(f.parameter))
             {
-                Variable v => (v.name == target) ? replacement : v,
-                Function f => (f.parameter == target) ? f : f with { body = BetaReduce(f.body, target, replacement) },
-                Application a => new Application(
-                    BetaReduce(a.function, target, replacement),
-                    BetaReduce(a.argument, target, replacement)
-                    ),
-                _ => throw new ArgumentException("Unknown expression type")
-            };
+                string newParam = f.parameter + "'";
+                var renamedBody = Substitute(f.body, f.parameter, new Variable(newParam));
+                return new Function(newParam, Substitute(renamedBody, target, replacement));
+            }
+            return f with { body = Substitute(f.body, target, replacement) };
         }
+        public static Expression Substitute(Expression expr, string target, Expression replacement) => expr switch
+        {
+            Variable v => (v.name == target) ? replacement : v,
+            Function f when f.parameter == target => f,
+            Function f => HandleFunctionSubstitution(f, target, replacement),
+            Application a => new Application(
+                Substitute(a.function, target, replacement),
+                Substitute(a.argument, target, replacement)
+            ),
+            _ => throw new ArgumentException("Unknown type")
+        };
         public static Expression Evaluate(Expression expr)
         {
             if (expr is Application app)
@@ -46,7 +62,7 @@ namespace LambdaCalc
                 var arg = Evaluate(app.argument);
                 if (func is Function f)
                 {
-                    return Evaluate(BetaReduce(f.body, f.parameter, arg));
+                    return Evaluate(Substitute(f.body, f.parameter, arg));
                 }
                 return new Application(func, arg);
             }
