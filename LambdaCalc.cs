@@ -9,19 +9,19 @@ namespace LambdaCalc
 {
     public abstract record Expression
     {
-        public abstract string AsString();
+        public abstract override string ToString();
     }
     public record Variable(string name) : Expression
     {
-        public override string AsString() => name;
+        public override string ToString() => name;
     }
     public record Function(string parameter, Expression body) : Expression
     {
-        public override string AsString() => $"\\{parameter}.{body.AsString()}";
+        public override string ToString() => $"\\{parameter}.{body.ToString()}";
     }
     public record Application(Expression function, Expression argument) : Expression
     {
-        public override string AsString() => $"({function.AsString()}) {argument.AsString()}";
+        public override string ToString() => $"({function.ToString()}) {argument.ToString()}";
     }
     static class LambdaCalc
     {
@@ -52,6 +52,5 @@ namespace LambdaCalc
             }
             return expr;
         }
-
     }
 }
