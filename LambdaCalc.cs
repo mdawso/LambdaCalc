@@ -68,5 +68,44 @@ namespace LambdaCalc
             }
             return expr;
         }
+        public enum TokenType
+        {
+            OPEN_BRACKET,
+            CLOSE_BRACKET,
+            LAMBDA,
+            DOT,
+            ID,
+            EOF
+        }
+        public record Token(TokenType type, string value = "");
+        public class Lexer(string input)
+        {
+            private int _pos = 0;
+            private Token Next()
+            {
+                while (_pos < input.Length && char.IsWhiteSpace(input[_pos])) _pos++;
+                if (_pos >= input.Length) return new Token(TokenType.EOF); 
+                char c = input[_pos++];
+                return c switch
+                {
+                    '\\' => new Token(TokenType.LAMBDA),
+                    '.' => new Token(TokenType.DOT),
+                    '(' => new Token(TokenType.OPEN_BRACKET),
+                    ')' => new Token(TokenType.CLOSE_BRACKET),
+                    _ => new Token(TokenType.ID, c.ToString())
+                };
+            }
+            public Token[] Tokenise()
+            {
+                List<Token> tokens = [];
+                while (true)
+                {
+                    Token current_token = Next();
+                    tokens.Add(current_token);
+                    if (current_token.type == TokenType.EOF) break;
+                }
+                return tokens.ToArray();
+            }
+        }
     }
 }
